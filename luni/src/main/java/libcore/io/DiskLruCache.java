@@ -392,6 +392,13 @@ public final class DiskLruCache implements Closeable {
             }
         } catch (FileNotFoundException e) {
             // a file must have been deleted manually!
+            for (int i = 0; i < valueCount; i++) {
+                if (ins[i] != null) {
+                    IoUtils.closeQuietly(ins[i]);
+                } else {
+                    break;
+                }
+            }
             return null;
         }
 
@@ -509,6 +516,7 @@ public final class DiskLruCache implements Closeable {
             lruEntries.remove(entry.key);
             journalWriter.write(REMOVE + ' ' + entry.key + '\n');
         }
+        journalWriter.flush();
 
         if (size > maxSize || journalRebuildRequired()) {
             executorService.submit(cleanupCallable);
@@ -562,7 +570,7 @@ public final class DiskLruCache implements Closeable {
     /**
      * Returns true if this cache has been closed.
      */
-    public boolean isClosed() {
+    public synchronized boolean isClosed() {
         return journalWriter == null;
     }
 
